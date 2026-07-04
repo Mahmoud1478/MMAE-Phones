@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-05
+
 ### Added
 
 - **Country detection** (`MMAE\Phones\CountryDetector`) — resolve which
@@ -89,6 +91,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Service provider now loads and publishes package translations.
 - Expanded country coverage to 209 countries (one `{CODE}Phone` per config entry).
+- Service provider exposes package identity via `MMAEPhonesServiceProvider::NAME`
+  and `::VERSION` constants.
+
+### Removed
+
+- **BREAKING: `BasePhone::for()` removed.** A phone's country is now fixed at
+  construction — pass the code to `make()` (or use a country-locked
+  `{CODE}Phone` subclass). There is no setter to swap the country on an existing
+  instance, so the internal country code can no longer be mutated after the
+  object is built. The `for()` autocomplete entry is also dropped from the
+  generated `.phpstorm.meta.php`.
+
+### Performance
+
+- **`BasePhone` memoizes its regex and match.** The compiled per-country regex
+  and the `preg_match` result are now computed once per instance instead of on
+  every call. Routing `isValid()` through `segments()` removes the duplicate
+  `preg_match` that `toString()` and `all()` previously triggered, roughly
+  halving regex executions on the hot path. Results stay deterministic because
+  the number is `readonly` and the country is fixed at construction.
 
 ## [0.1.0]
 

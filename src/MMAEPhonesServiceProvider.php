@@ -18,6 +18,15 @@ use MMAE\Phones\Commands\GenerateIdeHelperCommand;
  */
 class MMAEPhonesServiceProvider extends ServiceProvider
 {
+    /** Composer package name. */
+    public const string NAME = 'mmae/phones';
+
+    /** Current package version (kept in step with the git release tag). */
+    public const string VERSION = '2.0.0';
+
+    /** Package repository URL. */
+    public const string HOMEPAGE = 'https://github.com/Mahmoud1478/MMAE-Phones';
+
     public function boot(): void
     {
         $this->loadTranslationsFrom(__DIR__.'/../lang', 'phones');
