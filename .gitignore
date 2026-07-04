@@ -7,3 +7,5 @@ datasets/*.csv
 # benchmark run artifacts (phones:dataset --out defaults to cwd; phones:benchmark history)
 /*.csv
 phone-benchmarks.jsonl
+
+composer.lock

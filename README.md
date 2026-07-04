@@ -474,11 +474,27 @@ php vendor/bin/testbench phones:benchmark 1000000 --valid=0    # all invalid —
 
 ### Precompiling the index
 
-The package ships `config/phone-lookup.php` — the ready-to-walk index, baked from the bundled schema — and the detector loads it verbatim (no runtime build). After you publish and extend `config/phones.php`, regenerate it so detection sees the new codes:
+The package ships `config/phone-lookup.php` — the ready-to-walk index, baked from the bundled schema — and the service provider merges it into `config('phone-lookup')` at boot, so **`detect()` works the instant you `composer require mmae/phones`, with no build step**. (The index is a build artifact shipped with the package; there is no install-time hook because a dependency cannot run scripts in the host app — shipping it baked is what makes it instant.)
+
+After you publish and extend `config/phones.php`, regenerate the index so detection sees the new codes:
 
 ```bash
 php artisan phones:build-lookup
 ```
+
+#### Rebuild automatically on `composer install`/`update`
+
+Only relevant once you publish and edit `config/phones.php` — the shipped index already covers the bundled countries. To never forget the rebuild, add the command to your **application's** `composer.json` (a package can't inject this for you):
+
+```json
+"scripts": {
+    "post-autoload-dump": [
+        "@php artisan phones:build-lookup --ansi"
+    ]
+}
+```
+
+Now every `composer install`, `composer update`, or `composer dump-autoload` recompiles `config/phone-lookup.php` from your current `config/phones.php`.
 
 The baked index is **required** — there is no runtime fallback. The package ships one built from its bundled schema, so detection works out of the box; you only regenerate after changing `config/phones.php`. If you mutate config at runtime (e.g. in tests), call `CountryDetector::flush()` to force a reload.
 
