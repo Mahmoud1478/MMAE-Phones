@@ -19,6 +19,7 @@
     ],
     "minimum-stability": "dev",
     "require-dev": {
+        "livewire/livewire": "^4.0",
         "orchestra/testbench": "^11.0",
         "laravel/pint": "^1.18",
         "pestphp/pest": "^4.0",

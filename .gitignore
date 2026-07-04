@@ -1,5 +1,7 @@
 vendor
+node_modules
 .phpunit.result.cache
+workbench/storage
 
 # generated datasets (large); keep the generator scripts, not the output
 datasets/*.csv

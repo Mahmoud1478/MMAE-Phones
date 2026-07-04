@@ -5,6 +5,7 @@ namespace Workbench\Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use MMAE\Phones\Phone;
 use Workbench\App\Models\User;
 
 /**
@@ -31,10 +32,14 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        $localPhone = '01'.fake()->randomElement(['0', '1', '2', '5']).fake()->numerify('########');
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
+            'country_code' => 'EG',
+            'phone' => Phone::make($localPhone, 'EG')->withPlus()->toString(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
         ];

@@ -14,6 +14,7 @@ class TestCase extends \Orchestra\Testbench\TestCase
     {
         return [
             'MMAE\Phones\MMAEPhonesServiceProvider',
+            'Workbench\App\Providers\WorkbenchServiceProvider',
         ];
     }
 }

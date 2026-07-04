@@ -10,5 +10,6 @@
 /src/tests export-ignore
 /workbench export-ignore
 /datasets export-ignore
+/docs export-ignore
 /*.csv export-ignore
 /phone-benchmarks.jsonl export-ignore

@@ -66,6 +66,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `validation.php` (`phone`, `required`, `exists`, `unique` keys), loaded by the
   service provider and publishable via the `mmae::phones-lang` tag. Messages
   follow `app()->getLocale()`.
+- **README — Livewire examples (§9).** Two single-file components: a form using
+  `PhoneRule` validation + `Phone` normalization + `unique` de-duplication, and a
+  country-detector card using `CountryDetector` + `Placeholder`, including `+1`
+  NANP multi-match handling. Illustrated with screenshots under `docs/`
+  (dev-only, `export-ignore`d).
 
 ### Changed
 

@@ -246,13 +246,23 @@ Config and translations are merged/loaded automatically — no publish needed to
 
 ## 3. Usage
 
+Pick the entry point by what you have:
+
+- a **known** country → the `{CODE}Phone` class for normalization + a `{CODE}PhoneRule` for validation (below),
+- a country that **varies per request** → the generic `Phone` / `PhoneRule` (below),
+- an international number of **unknown** country → the **detector** (§6),
+- a full form or Livewire UI → the **validation rules** (§4) and **Livewire examples** (§9).
+
 ### Validate a known-country number before saving
+
+Prefer the rule (§4) in `validate()`; use the phone class to normalize before storing:
 
 ```php
 <?php
 
 use Illuminate\Http\Request;
 use MMAE\Phones\Phones\EGPhone;
+use MMAE\Phones\Rules\EGPhoneRule;
 
 class UserController extends \App\Http\Controllers\Controller
 {
@@ -260,15 +270,12 @@ class UserController extends \App\Http\Controllers\Controller
     {
         $data = $request->validate([
             'name' => 'required',
-            'phone' => 'required',
+            // format check, plus optional exists()/unique() — see §4
+            'phone' => ['required', EGPhoneRule::make()],
         ]);
 
-        $phone = EGPhone::make($data['phone']);
-        if ($phone->isNotValid()) {
-            return back()->withErrors(['phone' => 'wrong format']);
-        }
-
-        $data['phone'] = $phone; // casts to full normalized string form
+        // normalize any accepted shape (local 0, 00, +, bare) to one canonical form
+        $data['phone'] = EGPhone::make($data['phone'])->toString();
         \App\Models\User::create($data);
 
         return back()->with('success', 'created');
@@ -276,20 +283,25 @@ class UserController extends \App\Http\Controllers\Controller
 }
 ```
 
-Each country has its own class under `MMAE\Phones\Phones\`: `EGPhone`, `SAPhone`, `LYPhone`, `AEPhone`, … (one `{CODE}Phone` per config entry).
+Each country ships a class under `MMAE\Phones\Phones\` (`EGPhone`, `SAPhone`, `LYPhone`, `AEPhone`, …) and a matching rule under `MMAE\Phones\Rules\` (`EGPhoneRule`, …) — one of each per config entry. Without the rule you can still validate by hand: `if (EGPhone::make($data['phone'])->isNotValid()) { … }`.
 
 ### Validate when the country varies per user (multi-country registration)
 
+Use the generic `Phone` / `PhoneRule` with an explicit `$countryCode` (a key in `config/phones.php`) instead of hardcoding one:
+
 ```php
-$phone = \MMAE\Phones\Phone::make($user->phone, $user->country_code);
+use MMAE\Phones\Phone;
+
+$phone = Phone::make($user->phone, $user->country_code);
 if ($phone->isNotValid()) {
     throw new \Exception('wrong format');
 }
 
-$SMSService->message('hello')->to($phone->withPlus())->send();
+// withPlus() flips the +-prefix flag; stringify to send the +CC… form
+$SMSService->message('hello')->to($phone->withPlus()->toString())->send();
 ```
 
-`Phone::make()` takes an explicit `$countryCode` (matching a key in `config/phones.php`) instead of hardcoding one.
+For a form where the country is itself a field, drop `PhoneRule::make($countryCode)` into your rules — see §4 and the Livewire form in §9.
 
 ## 4. Validation Rules
 
@@ -670,7 +682,175 @@ final class JOPhoneRule extends BasePhoneRule
 4. Add a matching `{CC}Placeholder` under `src/Placeholders/` (mirroring `EGPlaceholder.php`), locking the same code.
 5. Refresh IDE autocomplete for the new code — see [IDE autocomplete](#9-ide-autocomplete).
 
-## 9. IDE autocomplete (PhpStorm only)
+## 9. Livewire examples
+
+Two ready-to-adapt [Livewire](https://livewire.laravel.com) single-file components, distilled from the pages this package develops against.
+
+### User form — validate, normalize & de-duplicate
+
+A `PhoneRule` (§4) validates the input, `Rule::in(array_keys(config('phones')))` accepts any configured country, and the value is normalized to the canonical `+` form (§5) before saving. `->unique('users', 'phone', $id)` matches **every** stored shape, so a duplicate is caught no matter how it was saved (ignoring the current row on edit).
+
+```php
+<?php
+use Illuminate\Validation\Rule;
+use Livewire\Component;
+use MMAE\Phones\Phone;
+use MMAE\Phones\Rules\PhoneRule;
+use App\Models\User;
+
+new class extends Component {
+    public ?int $editingId = null;
+    public string $country_code = 'EG';
+    public string $phone = '';
+
+    protected function rules(): array
+    {
+        return [
+            'country_code' => ['required', Rule::in(array_keys(config('phones')))],
+            'phone' => [
+                PhoneRule::make($this->country_code)
+                    ->unique('users', 'phone', $this->editingId),
+            ],
+        ];
+    }
+
+    public function save(): void
+    {
+        $this->validate();
+
+        User::updateOrCreate(
+            ['id' => $this->editingId],
+            [
+                'country_code' => $this->country_code,
+                // store the canonical international form, e.g. +201012345678
+                'phone' => Phone::make($this->phone, $this->country_code)->withPlus()->toString(),
+            ],
+        );
+    }
+};
+?>
+
+<form wire:submit="save">
+    <select wire:model="country_code">
+        @foreach (array_keys(config('phones')) as $code)
+            <option value="{{ $code }}">{{ $code }}</option>
+        @endforeach
+    </select>
+
+    <input type="text" wire:model="phone" placeholder="01012345678">
+    @error('phone') <p>{{ $message }}</p> @enderror
+
+    <button type="submit">Save</button>
+</form>
+```
+
+Show each stored number's country back in a list with the detector (§6):
+
+```blade
+{{ \MMAE\Phones\CountryDetector::detectFirst($user->phone) ?? '—' }}
+```
+
+The rule reports the country's expected format live as the user types:
+
+![User form with a live PhoneRule validation error](docs/rule.png)
+
+### Country detector + placeholder card
+
+Paste a full international number → detect its country (§6) → render that country's full `PlaceholderData` schema (§7). One dialing key can match several countries (every NANP country is `+1`), so all matches are listed and the user picks which one drives the info.
+
+```php
+<?php
+use Livewire\Attributes\Computed;
+use Livewire\Component;
+use MMAE\Phones\Configs\PlaceholderData;
+use MMAE\Phones\CountryDetector;
+use MMAE\Phones\Phone;
+use MMAE\Phones\Placeholders\Placeholder;
+
+new class extends Component {
+    public string $number = '';
+    public ?string $selected = null;
+
+    // reset the pick whenever the number changes so it can't stick to a stale country
+    public function updatedNumber(): void
+    {
+        $this->selected = null;
+    }
+
+    /** @return list<string> every country sharing this dialing key */
+    #[Computed]
+    public function detected(): array
+    {
+        return $this->number !== '' ? CountryDetector::detect(trim($this->number)) : [];
+    }
+
+    /** the user's pick if still valid, else the first match */
+    #[Computed]
+    public function country(): ?string
+    {
+        return in_array($this->selected, $this->detected, true)
+            ? $this->selected
+            : ($this->detected[0] ?? null);
+    }
+
+    #[Computed]
+    public function info(): ?PlaceholderData
+    {
+        return $this->country ? Placeholder::make($this->country)->extract() : null;
+    }
+
+    #[Computed]
+    public function valid(): ?bool
+    {
+        return $this->country
+            ? Phone::make(trim($this->number), $this->country)->isValid()
+            : null;
+    }
+};
+?>
+
+<div>
+    <input type="text" wire:model.live.debounce.300ms="number" placeholder="+17875550123">
+
+    @if ($this->detected)
+        {{-- several countries share the key (+1): click a code to switch --}}
+        @foreach ($this->detected as $code)
+            <button type="button" wire:click="$set('selected', '{{ $code }}')"
+                @class(['font-bold' => $code === $this->country])>{{ $code }}</button>
+        @endforeach
+
+        @php($info = $this->info)
+        <dl>
+            <dt>Dialing key</dt> <dd>+{{ $info->key }}</dd>
+            <dt>Trunk key</dt>   <dd>{{ $info->localKey ?: '—' }}</dd>
+            <dt>Providers</dt>   <dd>{{ implode(', ', $info->providers) }}</dd>
+            <dt>Digits</dt>      <dd>{{ $info->digitsMin }}–{{ $info->digitsMax }}</dd>
+            <dt>Format</dt>      <dd>{{ $info->internationalFormat() }}</dd>
+            <dt>Example</dt>     <dd>{{ $info->international() }}</dd>
+        </dl>
+
+        <p>{{ $this->valid ? "Valid {$this->country} number" : "Fails {$this->country} format" }}</p>
+    @elseif ($number !== '')
+        <p>No country detected — enter the number in international form (with dialing key).</p>
+    @endif
+</div>
+```
+
+> `CountryDetector::detect('+17875550123')` returns `['US', 'CA', 'PR']` — three countries share `+1`. A local-form number (`01012345678`, no dialing key) returns `[]`; there you already know the country, so use `Phone` / `PhoneRule` with an explicit code instead.
+
+A single-match number resolves straight to its country and full placeholder schema (dialing key, providers, digit lengths, masked formats, example, and every accepted shape):
+
+![Detector card for an Egyptian number](docs/detector-placeholder.png)
+
+A number on a shared key (`+17875550123` → `US, CA, PR`) lists all matches — click a code to drive the card. The same digits describe a different schema per country (note how `PR` narrows the providers to `787` / `939`):
+
+![Detector card with +1 matches, US selected](docs/detector-placeholder-tab-1.png)
+
+![Same number with CA selected](docs/detector-placeholder-tab-2.png)
+
+![Same number with PR selected, providers 787/939](docs/detector-placeholder-tab-3.png)
+
+## 10. IDE autocomplete (PhpStorm only)
 
 > **PhpStorm only.** This feature relies on `.phpstorm.meta.php`, which only PhpStorm reads. Other editors (VS Code/Intelephense, Neovim, …) have no mechanism for suggesting string-literal argument values, so they get nothing here — but every code still validates fine at runtime.
 
@@ -688,7 +868,7 @@ The IDE never reads `config/phones.php` itself — this command runs *in your ap
 
 > Editor-only: an unregistered code still validates fine at runtime — `Phone::make()` reads `config('phones')` directly. The command only keeps autocomplete in sync.
 
-## 10. Testing
+## 11. Testing
 
 Package tests live in `src/tests` (Testbench, not top-level `tests/`).
 
@@ -697,7 +877,7 @@ composer test    # vendor/bin/pest --parallel
 composer lint    # vendor/bin/phpstan analyse
 ```
 
-## 11. Support
+## 12. Support
 
 - **Issues & bugs:** <https://github.com/Mahmoud1478/MMAE-Phones/issues>
 - **Source:** <https://github.com/Mahmoud1478/MMAE-Phones>
@@ -705,10 +885,10 @@ composer lint    # vendor/bin/phpstan analyse
 
 When reporting a bug, include the country code, the input number, and the expected vs. actual result.
 
-## 12. License
+## 13. License
 
 MIT — see [LICENSE](LICENSE).
 
-## 13. Changelog
+## 14. Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
