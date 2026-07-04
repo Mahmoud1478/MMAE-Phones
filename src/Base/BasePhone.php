@@ -33,6 +33,16 @@ abstract class BasePhone implements \Stringable, Arrayable
 
     private string $normalizedNumber;
 
+    /** Memoized regex built from the current country schema (null until first built). */
+    private ?string $regexCache = null;
+
+    /**
+     * Memoized match against the normalized number (null until first run).
+     *
+     * @var array<int|string, string>|null
+     */
+    private ?array $matchesCache = null;
+
     public function __construct(private readonly string $number, string $countryCode)
     {
         $this->for($countryCode)->normalize();
@@ -67,10 +77,14 @@ abstract class BasePhone implements \Stringable, Arrayable
      */
     private function regex(): string
     {
+        if ($this->regexCache !== null) {
+            return $this->regexCache;
+        }
+
         $key = $this->country['key'] ?? '';
         $pattern = $this->country['pattern'] ?? '';
         if ($key === '' || $pattern === '') {
-            return '';
+            return $this->regexCache = '';
         }
         $local = $this->country['local_key'] ?? '';
         $alternatives = "(\+|00)?{$key}";
@@ -78,7 +92,7 @@ abstract class BasePhone implements \Stringable, Arrayable
             $alternatives .= "|{$local}";
         }
 
-        return "/^(?<key>{$alternatives})?".$pattern.'$/';
+        return $this->regexCache = "/^(?<key>{$alternatives})?".$pattern.'$/';
     }
 
     /**
@@ -103,12 +117,7 @@ abstract class BasePhone implements \Stringable, Arrayable
      */
     public function isValid(): bool
     {
-        $regex = $this->regex();
-        if ($regex === '') {
-            return false;
-        }
-
-        return (bool) preg_match($regex, $this->normalizedNumber);
+        return $this->segments() !== [];
     }
 
     /**
@@ -127,6 +136,8 @@ abstract class BasePhone implements \Stringable, Arrayable
         /** @var array<string, string> $country */
         $country = config("phones.$countryCode", []);
         $this->country = $country;
+        $this->regexCache = null;
+        $this->matchesCache = null;
 
         return $this;
     }
@@ -169,9 +180,17 @@ abstract class BasePhone implements \Stringable, Arrayable
      */
     public function segments(): array
     {
-        preg_match($this->regex(), $this->normalizedNumber, $matches);
+        if ($this->matchesCache !== null) {
+            return $this->matchesCache;
+        }
 
-        return $matches;
+        $regex = $this->regex();
+        if ($regex === '') {
+            return $this->matchesCache = [];
+        }
+        preg_match($regex, $this->normalizedNumber, $matches);
+
+        return $this->matchesCache = $matches;
     }
 
     /**
