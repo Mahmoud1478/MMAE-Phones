@@ -6,7 +6,6 @@ namespace MMAE\Phones\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
-use MMAE\Phones\Base\BasePhone;
 use MMAE\Phones\Phone;
 use MMAE\Phones\Placeholders\Placeholder;
 use MMAE\Phones\Rules\PhoneRule;
@@ -14,7 +13,7 @@ use MMAE\Phones\Rules\PhoneRule;
 /**
  * Writes `.phpstorm.meta.php/phones.php` registering the currently configured
  * country codes for the `$countryCode` autocomplete of {@see Phone::make()},
- * {@see PhoneRule::make()}, {@see Placeholder::make()}, and {@see BasePhone::for()}.
+ * {@see PhoneRule::make()}, and {@see Placeholder::make()}.
  *
  * Run `php artisan phones:ide-helper` after publishing and extending
  * `config/phones.php`. The file sits in a `.phpstorm.meta.php/` directory, which
@@ -96,7 +95,6 @@ class GenerateIdeHelperCommand extends Command
             );
 
             expectedArguments(\\MMAE\\Phones\\Phone::make(), 1, argumentsSet('mmae_phones_country_codes'));
-            expectedArguments(\\MMAE\\Phones\\Base\\BasePhone::for(), 0, argumentsSet('mmae_phones_country_codes'));
             expectedArguments(\\MMAE\\Phones\\Rules\\PhoneRule::make(), 0, argumentsSet('mmae_phones_country_codes'));
             expectedArguments(\\MMAE\\Phones\\Placeholders\\Placeholder::make(), 0, argumentsSet('mmae_phones_country_codes'));
         }

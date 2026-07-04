@@ -226,7 +226,6 @@ namespace PHPSTORM_META {
     );
 
     expectedArguments(\MMAE\Phones\Phone::make(), 1, argumentsSet('mmae_phones_country_codes'));
-    expectedArguments(\MMAE\Phones\Base\BasePhone::for(), 0, argumentsSet('mmae_phones_country_codes'));
     expectedArguments(\MMAE\Phones\Rules\PhoneRule::make(), 0, argumentsSet('mmae_phones_country_codes'));
     expectedArguments(\MMAE\Phones\Placeholders\Placeholder::make(), 0, argumentsSet('mmae_phones_country_codes'));
 }

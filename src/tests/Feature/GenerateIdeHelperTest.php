@@ -44,7 +44,6 @@ test('registers autocomplete for every generic entry point', function () {
 
     expect(File::get($this->target))
         ->toContain('expectedArguments(\MMAE\Phones\Phone::make(), 1, argumentsSet(\'mmae_phones_country_codes\'))')
-        ->toContain('expectedArguments(\MMAE\Phones\Base\BasePhone::for(), 0, argumentsSet(\'mmae_phones_country_codes\'))')
         ->toContain('expectedArguments(\MMAE\Phones\Rules\PhoneRule::make(), 0, argumentsSet(\'mmae_phones_country_codes\'))')
         ->toContain('expectedArguments(\MMAE\Phones\Placeholders\Placeholder::make(), 0, argumentsSet(\'mmae_phones_country_codes\'))');
 });

@@ -45,7 +45,10 @@ abstract class BasePhone implements \Stringable, Arrayable
 
     public function __construct(private readonly string $number, string $countryCode)
     {
-        $this->for($countryCode)->normalize();
+        /** @var array<string, string> $country */
+        $country = config("phones.$countryCode", []);
+        $this->country = $country;
+        $this->normalize();
     }
 
     /**
@@ -126,20 +129,6 @@ abstract class BasePhone implements \Stringable, Arrayable
     public function isNotValid(): bool
     {
         return ! $this->isValid();
-    }
-
-    /**
-     * Load the schema for a country code (silently empty if unknown).
-     */
-    public function for(string $countryCode): BasePhone
-    {
-        /** @var array<string, string> $country */
-        $country = config("phones.$countryCode", []);
-        $this->country = $country;
-        $this->regexCache = null;
-        $this->matchesCache = null;
-
-        return $this;
     }
 
     /**

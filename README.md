@@ -854,7 +854,7 @@ A number on a shared key (`+17875550123` → `US, CA, PR`) lists all matches —
 
 > **PhpStorm only.** This feature relies on `.phpstorm.meta.php`, which only PhpStorm reads. Other editors (VS Code/Intelephense, Neovim, …) have no mechanism for suggesting string-literal argument values, so they get nothing here — but every code still validates fine at runtime.
 
-The package ships a `.phpstorm.meta.php` registering all built-in codes as suggestions for the `$countryCode` argument of `Phone::make()`, `PhoneRule::make()`, `Placeholder::make()`, and `BasePhone::for()` — typing `Phone::make($n, '')` pops the country list in PhpStorm.
+The package ships a `.phpstorm.meta.php` registering all built-in codes as suggestions for the `$countryCode` argument of `Phone::make()`, `PhoneRule::make()`, and `Placeholder::make()` — typing `Phone::make($n, '')` pops the country list in PhpStorm.
 
 That shipped file is frozen at the built-in list. **After you publish and extend `config/phones.php`**, regenerate the metadata from your live config:
 
