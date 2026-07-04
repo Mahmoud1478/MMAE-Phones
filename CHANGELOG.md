@@ -66,6 +66,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `validation.php` (`phone`, `required`, `exists`, `unique` keys), loaded by the
   service provider and publishable via the `mmae::phones-lang` tag. Messages
   follow `app()->getLocale()`.
+- **Laravel Boost integration** (`resources/boost/`) — the package now ships
+  AI-assistant guidance that [Laravel Boost](https://github.com/laravel/boost)
+  auto-discovers from the installed package, no setup required:
+  - `guidelines/core.blade.php` — an always-on summary that teaches the four
+    tools (`{CODE}Phone` / `{CODE}PhoneRule` / `{CODE}Placeholder` /
+    `CountryDetector`), how to pick an entry point, and the validate-then-
+    normalize rule.
+  - `skills/phones-development/` — an on-demand skill (`SKILL.md` + a full
+    `references/phones-guide.md`) covering every API, use cases, Eloquent /
+    FormRequest / API / Livewire recipes, and how to test and validate results.
+  - Discovered via `resources/boost/{guidelines,skills}` and shipped in the dist
+    (not `export-ignore`d), so `composer require mmae/phones` alone surfaces it in
+    any Boost-enabled project.
 - **README — Livewire examples (§9).** Two single-file components: a form using
   `PhoneRule` validation + `Phone` normalization + `unique` de-duplication, and a
   country-detector card using `CountryDetector` + `Placeholder`, including `+1`

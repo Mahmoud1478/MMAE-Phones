@@ -877,7 +877,26 @@ composer test    # vendor/bin/pest --parallel
 composer lint    # vendor/bin/phpstan analyse
 ```
 
-## 12. Support
+## 12. Laravel Boost (AI assistants)
+
+The package ships [Laravel Boost](https://github.com/laravel/boost) guidance under `resources/boost/`, so AI coding assistants get package-specific, accurate help automatically. **Nothing to configure** — Boost auto-discovers it from the installed package.
+
+```bash
+composer require mmae/phones     # in any Boost-enabled project
+```
+
+Two pieces are exposed:
+
+- **Guideline** (`resources/boost/guidelines/core.blade.php`) — always-on. A short summary of the four tools (`{CODE}Phone` / `{CODE}PhoneRule` / `{CODE}Placeholder` / `CountryDetector`), how to pick an entry point, and the validate-then-normalize rule.
+- **Skill** (`resources/boost/skills/phones-development/`) — loaded on demand when the assistant touches phone code. `SKILL.md` gives the overview and gotchas; `references/phones-guide.md` is the full usage guide — every API, use cases, Eloquent / FormRequest / API / Livewire recipes, and how to **test and validate results**.
+
+Boost finds them by scanning `resources/boost/{guidelines,skills}` in each required package; the folder ships in the Composer dist (not `export-ignore`d). Verify discovery in a host app:
+
+```bash
+php artisan boost:install     # writes guidelines; lists discovered skills
+```
+
+## 13. Support
 
 - **Issues & bugs:** <https://github.com/Mahmoud1478/MMAE-Phones/issues>
 - **Source:** <https://github.com/Mahmoud1478/MMAE-Phones>
@@ -885,10 +904,10 @@ composer lint    # vendor/bin/phpstan analyse
 
 When reporting a bug, include the country code, the input number, and the expected vs. actual result.
 
-## 13. License
+## 14. License
 
 MIT — see [LICENSE](LICENSE).
 
-## 14. Changelog
+## 15. Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
