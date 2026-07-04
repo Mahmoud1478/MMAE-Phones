@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace MMAE\Phones\Configs;
 
 /**
- * Null-handling settings for a single rule run.
- *
- * Part of {@see RuleConfig}. When `enabled`, a `null` value passes and skips
- * every other check; otherwise a present `null` fails with `message`.
+ * Null-handling settings for a rule run: when `enabled`, `null` passes and skips
+ * every other check; otherwise it fails with `message`.
  *
  * @internal
  */

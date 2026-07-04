@@ -1,6 +1,7 @@
 {
     "preset": "laravel",
     "notPath": [
-        ".phpstorm.meta.php"
+        ".phpstorm.meta.php",
+        "config/phone-lookup.php"
     ]
 }

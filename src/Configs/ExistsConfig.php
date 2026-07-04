@@ -7,12 +7,9 @@ namespace MMAE\Phones\Configs;
 use MMAE\Phones\Base\BasePhone;
 
 /**
- * Existence-check settings for a single rule run.
- *
- * Part of {@see RuleConfig}. When `enabled`, the number must already exist in
- * `table`.`column`, matched against every accepted shape
- * ({@see BasePhone::all()}). Disabled by default so the
- * check always passes.
+ * Existence-check settings for a rule run: the number must already exist in
+ * `table`.`column`, matched against every accepted shape ({@see BasePhone::all()}).
+ * Disabled by default (passes).
  *
  * @internal
  */

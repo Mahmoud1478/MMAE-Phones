@@ -439,15 +439,38 @@ Detection is **international-only** by design: a local/trunk-`0` number carries 
 
 Built for bulk. Instead of scanning ~200 countries per call, the detector jumps straight to the candidates whose numbers are exactly the input's length, then walks a dialing-code trie one digit at a time — an impossible length is rejected before any work. The index is loaded once and cached in memory, so the hot path is a single array probe with no `config()` resolve per call.
 
-Measured on PHP 8.4 with the precompiled index, over a 50/50 mix of valid and rejected numbers spread across all 209 countries:
+Two further optimizations keep the hot path lean:
 
-| Metric | Result |
-|---|---|
-| per number | ~1.4 µs |
-| throughput | ~700,000 detections / second |
-| 1,000,000 numbers | ~1.5 s |
+- **Shared dialing codes resolve by lookup, not by regex-per-country.** A code used by many countries (every NANP territory is `+1`) would otherwise run one `preg_match` per country. For territories whose provider prefix is a fixed literal (area codes like `787`, `868`, `242`), the baked index instead stores a `provider → countries` map, so a single hash lookup on the leading digits replaces ~20 regex tests. Non-literal patterns (`+1`'s `\d{3}` wildcard, character classes) stay as regex. This cut `+1` detection ~3× with identical results.
+- **The hot path trusts the baked index shape.** `detect()` does not re-validate the type of every node it reads on each call — it assumes `config/phone-lookup.php` is well-formed and only keeps the control-flow checks that end the walk. Dropping the per-call `is_array`/`is_int`/`is_string` guards shaved a further ~10–15%. See the warning under [Precompiling the index](#precompiling-the-index) for what that assumption costs you.
 
-A million-row import therefore spends ~1.5 s in detection — the database write dominates, not the validation. (Rerun the numbers on your own hardware; `php artisan phones:build-lookup` first so the precompiled index is in play.)
+Measured on PHP 8.4 with the precompiled index, over a **real 50/50 mix of valid and rejected numbers spread across every configured country** — the exact CSV `phones:dataset` produces:
+
+| Metric | `detect()` | `detectFirst()` |
+|---|---|---|
+| per number | ~1.8 µs | ~1.5 µs |
+| throughput | ~570,000 / s | ~650,000 / s |
+| 1,000,000 numbers | ~1.8 s | ~1.5 s |
+
+A million-row import therefore spends under ~2 s in detection — the database write dominates, not the validation. (Numbers are hardware-specific; reproduce them with the harness below.)
+
+### Reproducing it
+
+The benchmark is dataset-driven so the timing reflects a production import, not a synthetic best case. A dev-only harness in the package workbench (`phones:benchmark`, shipped with the workbench, **not** the package) times the shipped `detect()` and `detectFirst()` as they run in production — these are the reference numbers above. Generate a real dataset with `phones:dataset`, then feed it in with `--file`:
+
+```bash
+php vendor/bin/testbench phones:dataset 1000000 --out=bench.csv   # 50/50 mix, all countries
+php vendor/bin/testbench phones:benchmark --file=bench.csv        # time detection over it
+```
+
+Both the CSV reader and the inline generator stream in chunks (a generator yields one `--chunk` of rows at a time, default 50,000), so memory stays flat for any file size — and since parsing happens outside the timed closures, the numbers measure detection alone.
+
+The length-keyed index is what keeps this flat: an input whose length no country uses misses the bucket and returns `[]` before a single dialing digit is walked, so rejects cost far less than matches and a half-invalid import stays cheap. Each run appends to `phone-benchmarks.jsonl` in the workbench storage so past numbers survive for comparison. Skip the CSV and let the command generate the mix inline — same factory, same country spread, tune the ratio with `--valid`:
+
+```bash
+php vendor/bin/testbench phones:benchmark 1000000 --valid=50   # half valid, random & interleaved across every country
+php vendor/bin/testbench phones:benchmark 1000000 --valid=0    # all invalid — the pure rejection path
+```
 
 ### Precompiling the index
 
@@ -457,7 +480,16 @@ The package ships `config/phone-lookup.php` — the ready-to-walk index, baked f
 php artisan phones:build-lookup
 ```
 
-Without the file the detector falls back to compiling from `config('phones')` at runtime, so detection still works — regenerating just removes the per-process compile. If you mutate the config at runtime (e.g. in tests), call `CountryDetector::flush()` to force a reload.
+The baked index is **required** — there is no runtime fallback. The package ships one built from its bundled schema, so detection works out of the box; you only regenerate after changing `config/phones.php`. If you mutate config at runtime (e.g. in tests), call `CountryDetector::flush()` to force a reload.
+
+> ⚠️ **`config/phone-lookup.php` must exist and match `config/phones.php`. Never hand-edit it; regenerate it after any change.**
+>
+> For speed, `detect()` trusts the exact shape this file is generated with — it walks the index **without** validating each node's type per call (see the [Speed](#speed) note), and there is **no runtime fallback** to rebuild it from `config('phones')`. That is a deliberate trade: it buys ~10–15% on the hot path, but it means the compiled index is a hard dependency.
+>
+> The contract:
+> - **Only** produce this file with `php artisan phones:build-lookup`. Treat it as a build artifact, not source — never edit it by hand.
+> - **Regenerate it** whenever you add, remove, or change a country in `config/phones.php`. A stale index silently misses your new countries — that's on you, not the package.
+> - **A missing index throws**, loudly: the first `detect()` raises a `RuntimeException` telling you to run `phones:build-lookup` (checked once, off the hot path). A *malformed or hand-edited* index is undefined behavior and can `TypeError` mid-detection instead — so don't hand-edit it.
 
 ### Recipe: import owners with key-only numbers
 

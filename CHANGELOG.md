@@ -21,15 +21,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     candidates, then walks a dialing-code trie one digit at a time, so an
     impossible length is rejected before any work. The index is loaded once and
     cached in memory — the hot path is a single array probe, no `config()` per
-    call. Measured ~1.4 µs per number (~700k detections/sec, ~1.5 s per million)
-    on PHP 8.4 with the precompiled index.
+    call. Measured ~1.8 µs per number (~570k detections/sec, ~1.8 s per million)
+    on PHP 8.4 over a real 50/50 mix across every country (`detectFirst()` ~1.5 µs);
+    reproduce with the workbench `phones:benchmark` harness, which streams a
+    generated `--valid` ratio mix (or a `phones:dataset --file` CSV) through a
+    chunked generator so memory stays flat at any size.
+  - Shared dialing codes resolve by lookup, not regex-per-country: for a code
+    used by many countries (e.g. every `+1` NANP territory), literal provider
+    prefixes bake into a `provider → countries` map so one hash lookup replaces
+    ~20 `preg_match` calls — ~3× faster on `+1`, identical results. Non-literal
+    patterns stay as regex.
+  - The hot path trusts the baked index shape: `detect()` drops per-call
+    `is_array`/`is_int`/`is_string` guards (a further ~10–15%) and keeps only
+    control-flow checks. **`config/phone-lookup.php` is a required build artifact
+    — never hand-edit it, and regenerate with `phones:build-lookup` after any
+    `config/phones.php` change.** There is no runtime fallback: a missing index
+    throws a `RuntimeException` on first `detect()` (checked once, off the hot
+    path) pointing you to `phones:build-lookup`; a malformed or hand-edited index
+    is undefined behavior and can `TypeError` mid-detection.
   - `flush()` drops the cached index after runtime config changes.
 - **`phones:build-lookup` command** — compiles `config/phones.php` into a
   ready-to-load `config/phone-lookup.php` detection index (via
-  `CountryDetector::compileIndex()`), so detection skips the per-process compile.
+  `LookupCompiler::compile()`), so detection skips the per-process compile.
   The package ships a lookup baked from its bundled schema; re-run after
-  publishing and extending the config. Without the file, detection falls back to
-  compiling from `config('phones')` at runtime.
+  publishing and extending the config. The baked index is required — detection
+  has no runtime fallback and throws if it is missing.
 - **Validation rules.** A `{CODE}PhoneRule` for every one of the 209 supported
   countries (`MMAE\Phones\Rules\`), each implementing Laravel's `ValidationRule`
   with its locale locked, plus a generic `PhoneRule::make($countryCode)` for

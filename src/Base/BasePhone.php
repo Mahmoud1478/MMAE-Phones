@@ -7,22 +7,17 @@ use MMAE\Phones\Phone;
 use MMAE\Phones\Phones\EGPhone;
 
 /**
- * Base class for every country phone number.
+ * Base for every country phone number: wraps a raw string, validates and
+ * normalizes it against the per-country schema in `config/phones.php`
+ * (`key`, `local_key`, `pattern`). Accepts any prefix shape (`0`, `00`, `+`,
+ * or the bare dialing code).
  *
- * Wraps a raw input string and, using the per-country schema in
- * `config/phones.php` (`key`, `local_key`, `pattern`), validates it and
- * normalizes it to a single canonical form. Concrete country classes
- * ({@see EGPhone}, ...) lock a country code in their
- * constructor; the generic {@see Phone} takes an explicit code.
+ * Concrete classes ({@see EGPhone}, ...) hardcode a code; {@see Phone} takes one.
  *
- * Accepts any prefix shape — local trunk `0`, `00`, `+`, or the bare dialing
- * code — and exposes the number as a canonical string ({@see toString()}),
- * every accepted variant ({@see all()}), or its parts ({@see segments()}).
- *
- * Implements Stringable (casts to the canonical form, `''` when invalid) and
- * Arrayable ({@see toArray()} returns {@see all()}). The `+` prefix of the
- * string output is controlled by the static {@see $plus} flag via
- * {@see withPlus()} / {@see withoutPlus()}.
+ * Casts to the canonical string ({@see toString()}, `''` when invalid); also
+ * exposes every accepted variant ({@see all()}) and the parsed parts
+ * ({@see segments()}). The `+` prefix is toggled by the static {@see $plus}
+ * flag via {@see withPlus()} / {@see withoutPlus()}.
  *
  * @implements Arrayable<int, string>
  */
@@ -33,9 +28,7 @@ abstract class BasePhone implements \Stringable, Arrayable
      */
     private array $country;
 
-    /**
-     *  add (+) or not by default
-     */
+    /** Whether string output carries a leading `+`. Toggle via withPlus()/withoutPlus(). */
     public static bool $plus = false;
 
     private string $normalizedNumber;
@@ -46,7 +39,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * add (+) when cast to string
+     * Include a leading `+` when cast to string.
      */
     public function withPlus(): self
     {
@@ -56,7 +49,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * remove (+) when cast to string
+     * Drop the leading `+` when cast to string.
      *
      * @return $this
      */
@@ -68,10 +61,9 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * build the full validation regex from the country schema
-     *
-     * key group is derived from the country calling code (`key`) and the
-     * optional national trunk prefix (`local_key`); the body comes from `pattern`.
+     * Build the validation regex from the country schema. The key group comes
+     * from the calling code (`key`) plus optional trunk prefix (`local_key`);
+     * the body is `pattern`. Returns `''` when the schema is missing.
      */
     private function regex(): string
     {
@@ -90,7 +82,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * every accepted prefix form, derived from `key` and `local_key`
+     * Every accepted prefix form (`+key`, `00key`, `key`, and `local_key`).
      *
      * @return list<string>
      */
@@ -107,7 +99,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * determine if the phone number is valid
+     * Whether the number matches its country pattern.
      */
     public function isValid(): bool
     {
@@ -120,7 +112,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * determine if the phone number is not valid
+     * Inverse of {@see isValid()}.
      */
     public function isNotValid(): bool
     {
@@ -128,7 +120,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * set the country code
+     * Load the schema for a country code (silently empty if unknown).
      */
     public function for(string $countryCode): BasePhone
     {
@@ -140,7 +132,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * get full string version of the phone number with country key
+     * Canonical form (`key + provider + digits`), or `''` when invalid.
      */
     public function toString(): string
     {
@@ -155,7 +147,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * get all possible shape of the phone number
+     * The number under every accepted prefix form, or `[]` when invalid.
      *
      * @return list<string>
      */
@@ -171,7 +163,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * get phone number parts
+     * Regex match groups (`key`, `provider`, `digits`); empty when no match.
      *
      * @return array<int|string, string>
      */
@@ -183,7 +175,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * get key from phone schema
+     * Read the country schema: one key, or the whole array when `$key` is null.
      *
      * @return ($key is null ? array<string, string> : string|mixed)
      */
@@ -202,7 +194,7 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
-     * get the given number
+     * The raw number as originally passed in.
      */
     public function number(): string
     {

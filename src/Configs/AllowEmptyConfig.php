@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace MMAE\Phones\Configs;
 
 /**
- * Empty-string handling settings for a single rule run.
- *
- * Part of {@see RuleConfig}. When `enabled`, an empty string `''` passes and
- * skips every other check; otherwise `''` fails with `message`.
+ * Empty-string handling settings for a rule run: when `enabled`, `''` passes and
+ * skips every other check; otherwise it fails with `message`.
  *
  * @internal
  */

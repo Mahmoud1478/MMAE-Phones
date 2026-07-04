@@ -3,3 +3,7 @@ vendor
 
 # generated datasets (large); keep the generator scripts, not the output
 datasets/*.csv
+
+# benchmark run artifacts (phones:dataset --out defaults to cwd; phones:benchmark history)
+/*.csv
+phone-benchmarks.jsonl

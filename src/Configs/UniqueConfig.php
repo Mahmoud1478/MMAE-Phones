@@ -7,12 +7,9 @@ namespace MMAE\Phones\Configs;
 use MMAE\Phones\Base\BasePhone;
 
 /**
- * Uniqueness-check settings for a single rule run.
- *
- * Part of {@see RuleConfig}. When `enabled`, the number must not already exist
- * in `table`.`column` (matched against every accepted shape via
- * {@see BasePhone::all()}), optionally excluding one record.
- * Disabled by default so the check always passes.
+ * Uniqueness-check settings for a rule run: the number must not already exist in
+ * `table`.`column`, matched against every accepted shape ({@see BasePhone::all()}).
+ * Disabled by default (passes).
  *
  * @internal
  */

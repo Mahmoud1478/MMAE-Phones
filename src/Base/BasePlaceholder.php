@@ -8,27 +8,19 @@ use MMAE\Phones\Configs\PlaceholderData;
 use MMAE\Phones\Placeholders\Placeholder;
 
 /**
- * derives a {@see PlaceholderData} from a country schema in `config/phones.php`.
+ * Turns a country's regex schema (`config/phones.php`) into a {@see PlaceholderData}:
+ * accepted provider prefixes plus subscriber length. Concrete digit classes are
+ * enumerated; open wildcards (`\d`, `[0-9]`) collapse to the mask character.
  *
- * the country `pattern` is a regex with named `provider`/`digits` groups; this
- * class turns it back into human data: the accepted provider prefixes and the
- * subscriber length. concrete digit classes (e.g. `1[0125]`) are enumerated,
- * open wildcards (`\d`, `[0-9]`) collapse to the mask character.
- *
- * mirrors {@see BasePhone}: generic {@see Placeholder}
- * takes an explicit code; per-country subclasses lock theirs.
+ * Generic {@see Placeholder} takes an explicit code; per-country subclasses lock theirs.
  */
 abstract class BasePlaceholder
 {
-    /**
-     * every digit, used to detect an open (0-9) character class without
-     * rebuilding `range(0, 9)` on every token
-     */
+    /** Used to detect an open (0-9) character class. */
     private const array ALL_DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     /**
-     * parsed placeholders keyed by `countryCode|mask`; the schema is static per
-     * app boot and {@see PlaceholderData} is readonly, so the result is shared
+     * Parsed placeholders shared across instances, keyed by `countryCode|mask`.
      *
      * @var array<string, PlaceholderData>
      */
@@ -37,7 +29,7 @@ abstract class BasePlaceholder
     public function __construct(protected string $countryCode, protected string $mask = 'X') {}
 
     /**
-     * the detailed placeholder for the current country (memoized)
+     * The placeholder for the current country (memoized).
      */
     public function extract(): PlaceholderData
     {
@@ -45,7 +37,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * parse the country schema into a placeholder
+     * Parse the country schema into a placeholder.
      */
     private function build(): PlaceholderData
     {
@@ -79,7 +71,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * expand a provider sub-pattern into every accepted prefix
+     * Expand a provider sub-pattern into every accepted prefix.
      *
      * @return list<string>
      */
@@ -96,7 +88,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * split a sub-pattern on top-level `|`, ignoring pipes inside `[...]`
+     * Split a sub-pattern on top-level `|`, ignoring pipes inside `[...]`.
      *
      * @return list<string>
      */
@@ -129,7 +121,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * expand a single alternative (no top-level `|`) into concrete prefixes
+     * Expand a single alternative (no top-level `|`) into concrete prefixes.
      *
      * @return list<string>
      */
@@ -150,8 +142,8 @@ abstract class BasePlaceholder
     }
 
     /**
-     * tokenize an alternative into per-token option lists (their cartesian
-     * product is the set of prefixes the alternative accepts)
+     * Tokenize an alternative into per-token option lists; their cartesian
+     * product is the set of accepted prefixes.
      *
      * @return list<list<string>>
      */
@@ -175,8 +167,8 @@ abstract class BasePlaceholder
     }
 
     /**
-     * options a character class contributes: its enumerated digits, or a single
-     * masked string when the class is an open wildcard (all of 0-9) or repeated
+     * Options a character class contributes: its enumerated digits, or one
+     * masked string when the class is an open wildcard (all of 0-9) or repeated.
      *
      * @return list<string>
      */
@@ -194,8 +186,8 @@ abstract class BasePlaceholder
     }
 
     /**
-     * the sorted, unique digits a class body matches (ranges expanded, stray
-     * `|` separators ignored)
+     * The sorted, unique digits a class body matches (ranges expanded, stray
+     * `|` separators ignored).
      *
      * @return list<int>
      */
@@ -226,7 +218,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * the (minimum) repeat count of a `\d`/`\d{n}`/`\d{n,m}` token
+     * The (minimum) repeat count of a `\d`/`\d{n}`/`\d{n,m}` token.
      */
     private function quantifier(string $token): int
     {
@@ -238,7 +230,7 @@ abstract class BasePlaceholder
     }
 
     /**
-     * the min/max subscriber length from a `digits` sub-pattern
+     * The min/max subscriber length from a `digits` sub-pattern.
      *
      * @return array{int, int}
      */

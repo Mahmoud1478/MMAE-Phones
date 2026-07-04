@@ -7,11 +7,10 @@ namespace MMAE\Phones\Rules;
 use MMAE\Phones\Base\BasePhoneRule;
 
 /**
- * generic rule taking an explicit country code, mirroring MMAE\Phones\Phone.
+ * Generic rule taking an explicit country code, mirroring MMAE\Phones\Phone.
  *
- * use when the country varies per request (e.g. multi-country registration):
- * `PhoneRule::make($user->country_code)`. concrete country rules
- * (EGPhoneRule, SAPhoneRule, ...) lock their locale and take no code.
+ * Use when the country varies per request, e.g. `PhoneRule::make($user->country_code)`.
+ * Concrete country rules (EGPhoneRule, ...) lock their code and take none.
  */
 final class PhoneRule extends BasePhoneRule
 {
@@ -21,7 +20,7 @@ final class PhoneRule extends BasePhoneRule
     }
 
     /**
-     * create a rule for the given country code
+     * Create a rule for the given country code.
      *
      * @throws \InvalidArgumentException when no country code is given
      */

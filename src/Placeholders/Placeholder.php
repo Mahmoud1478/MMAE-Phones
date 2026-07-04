@@ -8,19 +8,17 @@ use MMAE\Phones\Base\BasePlaceholder;
 use MMAE\Phones\Phone;
 
 /**
- * generic placeholder taking an explicit country code, mirroring
- * {@see Phone}.
+ * Placeholder for a runtime-supplied country code, mirroring {@see Phone}.
  *
- * use when the country varies at runtime:
- * `Placeholder::make($user->country_code)->extract()`. concrete country
- * placeholders (EGPlaceholder, ...) lock their code and take none.
+ * `Placeholder::make($user->country_code)->extract()`. Per-country subclasses
+ * (EGPlaceholder, ...) lock their code and take none.
  */
 final class Placeholder extends BasePlaceholder
 {
     /**
-     * create a placeholder for the given country code
+     * Create a placeholder for the given country code.
      *
-     * @throws \InvalidArgumentException when no country code is given
+     * @throws \InvalidArgumentException when the country code is empty
      */
     public static function make(string $countryCode, string $mask = 'X'): static
     {

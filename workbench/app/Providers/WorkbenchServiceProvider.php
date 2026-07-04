@@ -4,6 +4,7 @@ namespace Workbench\App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Workbench\App\Console\Commands\GeneratePhonesDatasetCommand;
+use Workbench\App\Console\Commands\PhoneBenchmarkCommand;
 use Workbench\App\Console\Commands\VerifyPhonesDatasetCommand;
 
 class WorkbenchServiceProvider extends ServiceProvider
@@ -25,6 +26,7 @@ class WorkbenchServiceProvider extends ServiceProvider
             $this->commands([
                 GeneratePhonesDatasetCommand::class,
                 VerifyPhonesDatasetCommand::class,
+                PhoneBenchmarkCommand::class,
             ]);
         }
     }

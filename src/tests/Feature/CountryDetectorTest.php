@@ -58,34 +58,19 @@ test('prefers the precompiled lookup over runtime config(phones)', function () {
     expect(CountryDetector::detect('+201000000000'))->toEqual(['EG']);
 });
 
-test('falls back to compiling from config(phones) when no lookup is present', function () {
+test('throws an actionable error when no compiled lookup is present', function () {
     config()->set('phone-lookup', null);
-    config()->set('phones', [
-        'EG' => ['code' => 'EG', 'key' => '20', 'local_key' => '0', 'pattern' => '(?<provider>1[0125])(?<digits>\d{8})'],
-        'SA' => ['code' => 'SA', 'key' => '966', 'local_key' => '0', 'pattern' => '(?<provider>5)(?<digits>\d{8})'],
-    ]);
     CountryDetector::flush();
 
-    expect(CountryDetector::detect('+966500000000'))->toEqual(['SA'])
-        ->and(CountryDetector::detect('+201000000000'))->toEqual(['EG']);
+    expect(fn () => CountryDetector::detect('+201000000000'))
+        ->toThrow(RuntimeException::class, 'phones:build-lookup');
 });
 
-test('ignores schema entries missing a key or pattern when compiling', function () {
-    config()->set('phone-lookup', null);
-    config()->set('phones', [
-        'XX' => ['code' => 'XX'],
-        'EG' => ['code' => 'EG', 'key' => '20', 'local_key' => '0', 'pattern' => '(?<provider>1[0125])(?<digits>\d{8})'],
-    ]);
-    CountryDetector::flush();
-
-    expect(CountryDetector::detect('+201000000000'))->toEqual(['EG']);
-});
-
-test('flush forces a recompile after config changes', function () {
+test('flush forces a reload of the lookup after config changes', function () {
     expect(CountryDetector::detect('+201000000000'))->toEqual(['EG']);
 
-    config()->set('phone-lookup', null);
-    config()->set('phones', []);
+    // swap in a different baked index; detection only picks it up after flush
+    config()->set('phone-lookup', ['index' => []]);
     CountryDetector::flush();
 
     expect(CountryDetector::detect('+201000000000'))->toEqual([]);

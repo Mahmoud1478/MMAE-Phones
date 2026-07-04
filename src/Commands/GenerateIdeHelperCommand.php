@@ -12,17 +12,13 @@ use MMAE\Phones\Placeholders\Placeholder;
 use MMAE\Phones\Rules\PhoneRule;
 
 /**
- * Regenerates the PhpStorm metadata for the current `config/phones.php`.
+ * Writes `.phpstorm.meta.php/phones.php` registering the currently configured
+ * country codes for the `$countryCode` autocomplete of {@see Phone::make()},
+ * {@see PhoneRule::make()}, {@see Placeholder::make()}, and {@see BasePhone::for()}.
  *
- * The metadata shipped inside the package is frozen at the published country
- * list; once an app publishes and extends `config/phones.php`, run this command
- * to write an app-local `.phpstorm.meta.php/phones.php` that registers every
- * currently configured country code for the `$countryCode` autocomplete of
- * {@see Phone::make()}, {@see PhoneRule::make()},
- * {@see Placeholder::make()}, and {@see BasePhone::for()}.
- *
- * The file lives in a `.phpstorm.meta.php/` directory, which PhpStorm merges,
- * so it never clobbers an existing root `.phpstorm.meta.php`.
+ * Run `php artisan phones:ide-helper` after publishing and extending
+ * `config/phones.php`. The file sits in a `.phpstorm.meta.php/` directory, which
+ * PhpStorm merges, so it never clobbers a root `.phpstorm.meta.php`.
  */
 class GenerateIdeHelperCommand extends Command
 {

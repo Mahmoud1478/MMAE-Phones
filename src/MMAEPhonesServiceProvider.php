@@ -46,8 +46,7 @@ class MMAEPhonesServiceProvider extends ServiceProvider
             __DIR__.'/../config/phones.php', 'phones'
         );
 
-        // The precompiled lookup is optional: when absent (or not yet generated),
-        // CountryDetector falls back to compiling from config/phones.php.
+        // Guard a deleted lookup so boot survives; detect() surfaces the failure.
         $lookup = __DIR__.'/../config/phone-lookup.php';
         if (file_exists($lookup)) {
             $this->mergeConfigFrom($lookup, 'phone-lookup');

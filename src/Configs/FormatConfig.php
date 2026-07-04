@@ -7,11 +7,9 @@ namespace MMAE\Phones\Configs;
 use MMAE\Phones\Base\BasePhoneRule;
 
 /**
- * Format (regex) check settings for a single rule run.
- *
- * Part of {@see RuleConfig}. The format check always runs in the default flow;
- * `enabled` exists so a custom {@see BasePhoneRule::validateUsing()}
- * callback can branch on it.
+ * Format (regex) check settings for a rule run. The check always runs in the
+ * default flow; `enabled` only lets a {@see BasePhoneRule::validateUsing()}
+ * callback branch on it.
  *
  * @internal
  */

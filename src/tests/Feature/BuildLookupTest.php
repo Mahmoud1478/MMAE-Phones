@@ -23,10 +23,10 @@ test('compiles the schema into a length-first index', function () {
     $lookup = require $this->target;
     // EG: key 20 + 10 subscriber digits = total 12. SA: key 966 + 9 = total 12.
     // Both live under length 12; digit keys are ints (numeric-string keys cast).
-    $twelve = $lookup['byLength'][12];
+    $twelve = $lookup['index'][12];
 
-    expect($lookup)->toHaveKey('byLength')
-        ->and(array_keys($lookup['byLength']))->toBe([12])
+    expect($lookup)->toHaveKey('index')
+        ->and(array_keys($lookup['index']))->toBe([12])
         ->and($twelve[2][0]['$'][0])->toEqual(['/^(?<provider>1[0125])(?<digits>\d{8})$/', [[0, 'EG']]])
         ->and($twelve[9][6][6]['$'][0])->toEqual(['/^(?<provider>5)(?<digits>\d{8})$/', [[1, 'SA']]]);
 });
@@ -41,12 +41,30 @@ test('collapses countries sharing an identical pattern into one regex entry', fu
     $this->artisan('phones:build-lookup', ['--path' => $this->target])->assertSuccessful();
 
     // key 1 + 10 subscriber digits = total 11
-    $leaf = (require $this->target)['byLength'][11][1]['$'];
+    $leaf = (require $this->target)['index'][11][1];
 
-    // two distinct patterns under +1: the shared US/CA one, and PR's own
-    expect($leaf)->toHaveCount(2)
-        ->and($leaf[0])->toEqual(['/^(?<provider>\d{3})(?<digits>\d{7})$/', [[0, 'US'], [1, 'CA']]])
-        ->and($leaf[1])->toEqual(['/^(?<provider>787|939)(?<digits>\d{7})$/', [[2, 'PR']]]);
+    // The shared +1 code splits: the non-literal US/CA pattern stays a regex
+    // bucket in `$`; PR's literal 787/939 provider moves into the `#` fixed-width
+    // map (width 3), so detect() resolves it with a hash lookup, not a preg_match.
+    expect($leaf['$'])->toHaveCount(1)
+        ->and($leaf['$'][0])->toEqual(['/^(?<provider>\d{3})(?<digits>\d{7})$/', [[0, 'US'], [1, 'CA']]])
+        ->and($leaf['#'])->toEqual([3 => ['787' => [[2, 'PR']], '939' => [[2, 'PR']]]]);
+});
+
+test('keeps a unique dialing code as a single regex bucket', function () {
+    // A code with only one pattern never pays a per-country loop, so it is left
+    // in `$` untouched even when its provider is a bare literal (no `#` map).
+    config()->set('phones', [
+        'SA' => ['code' => 'SA', 'key' => '966', 'local_key' => '0', 'pattern' => '(?<provider>5)(?<digits>\d{8})'],
+    ]);
+
+    $this->artisan('phones:build-lookup', ['--path' => $this->target])->assertSuccessful();
+
+    $leaf = (require $this->target)['index'][12][9][6][6];
+
+    expect($leaf)->toHaveKey('$')
+        ->and($leaf)->not->toHaveKey('#')
+        ->and($leaf['$'][0])->toEqual(['/^(?<provider>5)(?<digits>\d{8})$/', [[0, 'SA']]]);
 });
 
 test('places a variable-length pattern in every length bucket it can produce', function () {
@@ -57,11 +75,11 @@ test('places a variable-length pattern in every length bucket it can produce', f
 
     $this->artisan('phones:build-lookup', ['--path' => $this->target])->assertSuccessful();
 
-    $byLength = (require $this->target)['byLength'];
+    $index = (require $this->target)['index'];
 
-    expect(array_keys($byLength))->toBe([10, 11])
-        ->and($byLength[10][2][0]['$'][0][1])->toEqual([[0, 'YY']])
-        ->and($byLength[11][2][0]['$'][0][1])->toEqual([[0, 'YY']]);
+    expect(array_keys($index))->toBe([10, 11])
+        ->and($index[10][2][0]['$'][0][1])->toEqual([[0, 'YY']])
+        ->and($index[11][2][0]['$'][0][1])->toEqual([[0, 'YY']]);
 });
 
 test('skips entries missing a key or pattern', function () {
@@ -72,11 +90,11 @@ test('skips entries missing a key or pattern', function () {
 
     $this->artisan('phones:build-lookup', ['--path' => $this->target])->assertSuccessful();
 
-    $byLength = (require $this->target)['byLength'];
+    $index = (require $this->target)['index'];
 
     // only EG made it in: one length bucket (12), dialing code 2 -> 0
-    expect(array_keys($byLength))->toBe([12])
-        ->and($byLength[12][2][0])->toHaveKey('$');
+    expect(array_keys($index))->toBe([12])
+        ->and($index[12][2][0])->toHaveKey('$');
 });
 
 test('produces a syntactically valid php file', function () {

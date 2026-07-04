@@ -12,11 +12,10 @@ use MMAE\Phones\Placeholders\Placeholder;
 /**
  * Default validation flow shared by every {@see BasePhoneRule}.
  *
- * Applies the rule's resolved {@see RuleConfig} in order: nullable / allowEmpty
- * short-circuits first, then the format check, then optional exists / unique
- * database checks (matched against every accepted shape via
- * {@see BasePhone::all()}). Failures are reported through the `$fail` closure
- * with translated messages. Bypassed entirely when a rule sets a
+ * Applies the resolved {@see RuleConfig} in order: nullable/allowEmpty
+ * short-circuits, format check, then optional exists/unique DB checks (matched
+ * against every accepted shape via {@see BasePhone::all()}). Failures go through
+ * `$fail` with translated messages. Bypassed when the rule sets a
  * {@see BasePhoneRule::validateUsing()} callback.
  */
 class Rules
@@ -80,8 +79,8 @@ class Rules
     }
 
     /**
-     * the accepted local format for the phone's country, e.g.
-     * `01[0,1,2,5]XXXXXXXX`; empty when the country is unknown
+     * The accepted local format for the phone's country, e.g.
+     * `01[0,1,2,5]XXXXXXXX`. Empty when the country is unknown.
      */
     private static function formatExample(BasePhone $phone): string
     {

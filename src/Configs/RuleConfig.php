@@ -7,13 +7,9 @@ namespace MMAE\Phones\Configs;
 use MMAE\Phones\Base\BasePhoneRule;
 
 /**
- * Immutable bundle of the five per-check configs resolved for one rule run.
- *
- * Assembled by {@see BasePhoneRule::validate()} from the
- * rule's fluent state and passed to the validation flow (and to any
- * {@see BasePhoneRule::validateUsing()} callback), which
- * reads each sub-config to decide what to enforce. Every `message` inside is a
- * raw `phones::` translation key — wrap it in `trans()` before failing.
+ * Immutable bundle of the five per-check configs for one rule run, assembled by
+ * {@see BasePhoneRule::validate()}. Every nested `message` is a raw `phones::`
+ * translation key — wrap it in `trans()` before failing.
  *
  * @internal
  */
