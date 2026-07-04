@@ -68,6 +68,7 @@ CountryDetector::detect('01000000000');      // [] — local form has no country
 - **A shared dialing code returns several codes.** Every NANP territory is `+1`, so `detect()` returns all matches in config order; disambiguate with other row data, don't blindly take `detectFirst()`.
 - **`exists()`/`unique()` match every stored shape** (`$phone->all()`), so a number saved as local/`00`/`+`/bare is found regardless of how the new value was submitted. The format check runs first — the DB is never queried for an invalid number.
 - **`withPlus()`/`withoutPlus()` mutate a static flag**, not per-instance state — set right before casting to string.
+- **A phone's country is fixed at construction** — pass the code to `make()`; there is no setter to swap it afterward.
 - **Config & translations merge automatically** — no publish to start. Publish only to customize; **regenerate `config/phone-lookup.php` with `php artisan phones:build-lookup` after any `config/phones.php` change**, or detection silently misses new countries.
 - **`toString()` returns `''` for an invalid number** — always check `isValid()`/`isNotValid()` (or validate with the rule) before persisting.
 

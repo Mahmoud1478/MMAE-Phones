@@ -68,6 +68,7 @@ Key behaviors:
 
 - **`toString()` returns `''` for an invalid number.** Always gate on `isValid()`/`isNotValid()` (or validate with the rule) before persisting.
 - **`withPlus()` / `withoutPlus()` flip a static flag** shared by the class, not per-instance state — set it right before casting to string.
+- **The country is fixed at construction.** Pass the code to `make()` (or the country-locked subclass); there is no setter to change it on an existing instance.
 
 Normalization — every accepted shape collapses to one canonical form:
 
