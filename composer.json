@@ -1,6 +1,7 @@
 {
     "name": "mmae/phones",
     "description": "Validate and normalize phone numbers for 209 countries, with drop-in Laravel validation rules (exists/unique, translations, nullable).",
+    "version": "2.0.0",
     "type": "library",
     "license": "MIT",
     "autoload": {
