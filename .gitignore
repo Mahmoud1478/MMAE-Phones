@@ -1,3 +1,5 @@
-workbench
 vendor
 .phpunit.result.cache
+
+# generated datasets (large); keep the generator scripts, not the output
+datasets/*.csv

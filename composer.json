@@ -1,6 +1,6 @@
 {
     "name": "mmae/phones",
-    "description": "Phone class that make dealing with phone numbers easy",
+    "description": "Validate and normalize phone numbers for 209 countries, with drop-in Laravel validation rules (exists/unique, translations, nullable).",
     "type": "library",
     "license": "MIT",
     "autoload": {
@@ -18,11 +18,20 @@
         }
     ],
     "minimum-stability": "dev",
-    "require": {
-        "illuminate/support": "11.*"
-    },
     "require-dev": {
-        "orchestra/testbench": "9.x-dev"
+        "orchestra/testbench": "^11.0",
+        "laravel/pint": "^1.18",
+        "pestphp/pest": "^4.0",
+        "phpunit/phpunit": "^12.5.22",
+        "phpstan/phpstan": "^2.1",
+        "larastan/larastan": "^3.1",
+        "rector/rector": "^2.5",
+        "driftingly/rector-laravel": "^2.5"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
     "extra": {
         "laravel": {
@@ -45,17 +54,28 @@
         ],
         "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build-lookup": "@php vendor/bin/testbench phones:build-lookup --path=config/phone-lookup.php --ansi",
         "build": "@php vendor/bin/testbench workbench:build --ansi",
         "serve": [
             "Composer\\Config::disableProcessTimeout",
             "@build",
-            "@php vendor/bin/testbench serve"
+            "@php vendor/bin/testbench serve --ansi"
         ],
-        "lint": [
+        "analyse": [
             "@php vendor/bin/phpstan analyse"
         ],
+        "format": [
+            "@php vendor/bin/pint --parallel"
+        ],
+        "refactor": [
+            "@php vendor/bin/rector process"
+        ],
         "test": [
-            "@php vendor/bin/phpunit"
+            "@php -d error_reporting=24575 vendor/bin/pest --test-directory=src/tests --parallel"
+        ],
+        "lint": [
+            "@php vendor/bin/pint --ansi",
+            "@php vendor/bin/phpstan analyse --verbose --ansi"
         ]
     }
 }

@@ -1,0 +1,147 @@
+<?php
+
+use Illuminate\Support\Facades\Validator;
+use MMAE\Phones\Base\BasePhone;
+use MMAE\Phones\Phones\NOPhone;
+use MMAE\Phones\Placeholders\NOPlaceholder;
+use MMAE\Phones\Placeholders\Placeholder;
+use MMAE\Phones\Rules\NOPhoneRule;
+
+test('can create a phone object', function () {
+    expect(NOPhone::make('40000000'))->toBeInstanceOf(NOPhone::class);
+});
+
+test('validates every provider variant in international form', function (string $number) {
+    expect(NOPhone::make($number)->isValid())->toBeTrue();
+})->with(['4740000000', '4790000000']);
+
+test('is valid with the local key', function () {
+    expect(NOPhone::make('40000000')->isValid())->toBeTrue();
+});
+
+test('is valid with the country key and no plus', function () {
+    expect(NOPhone::make('4740000000')->isValid())->toBeTrue();
+});
+
+test('is valid with the country key and a plus', function () {
+    expect(NOPhone::make('+4740000000')->isValid())->toBeTrue();
+});
+
+test('is valid with the country key and double zeros', function () {
+    expect(NOPhone::make('004740000000')->isValid())->toBeTrue();
+});
+
+test('is valid at the minimum digit length', function () {
+    expect(NOPhone::make('4740000000')->isValid())->toBeTrue();
+});
+
+test('is valid at the maximum digit length', function () {
+    expect(NOPhone::make('4790000000')->isValid())->toBeTrue();
+});
+
+test('strips spaces and dashes before validating', function () {
+    $phone = NOPhone::make('47 4-0000000');
+    expect($phone->isValid())->toBeTrue()
+        ->and($phone->toString())->toEqual('4740000000');
+});
+
+test('is not valid when too short', function () {
+    expect(NOPhone::make('4000000')->isNotValid())->toBeTrue();
+});
+
+test('is not valid when too long', function () {
+    expect(NOPhone::make('900000000')->isNotValid())->toBeTrue();
+});
+
+test('is not valid with a wrong country key', function () {
+    expect(NOPhone::make('99940000000')->isNotValid())->toBeTrue();
+});
+
+test('is not valid because of the starter number', function () {
+    expect(NOPhone::make('00000000')->isNotValid())->toBeTrue();
+});
+
+test('is not valid for empty or non-numeric input', function (string $number) {
+    expect(NOPhone::make($number)->isNotValid())->toBeTrue();
+})->with(['', 'abcdefghij']);
+
+test('lists every accepted key-prefixed shape', function () {
+    expect(NOPhone::make('40000000')->all())->toEqual(['+4740000000', '004740000000', '4740000000']);
+});
+
+test('toArray mirrors all', function () {
+    $phone = NOPhone::make('40000000');
+    expect($phone->toArray())->toEqual($phone->all());
+});
+
+test('segments expose the provider and digits groups', function () {
+    $segments = NOPhone::make('4740000000')->segments();
+    expect($segments)->toHaveKeys(['provider', 'digits'])
+        ->and($segments['provider'].$segments['digits'])->toEqual('40000000');
+});
+
+test('config exposes the country schema', function () {
+    $phone = NOPhone::make('40000000');
+    expect($phone->config('key'))->toEqual('47')
+        ->and($phone->config('code'))->toEqual('NO')
+        ->and($phone->config())->toBeArray();
+});
+
+test('number returns the raw input untouched', function () {
+    expect(NOPhone::make('47 4-0000000')->number())->toEqual('47 4-0000000');
+});
+
+test('withPlus and withoutPlus toggle the plus prefix', function () {
+    $phone = NOPhone::make('40000000');
+    expect($phone->withPlus()->toString())->toEqual('+4740000000')
+        ->and($phone->withoutPlus()->toString())->toEqual('4740000000');
+})->after(fn () => BasePhone::$plus = false);
+
+test('the static plus flag affects the string form', function () {
+    BasePhone::$plus = true;
+    expect(NOPhone::make('40000000')->toString())->toEqual('+4740000000');
+})->after(fn () => BasePhone::$plus = false);
+
+test('rule passes validation for a valid number', function () {
+    $validator = Validator::make(['phone' => '40000000'], ['phone' => NOPhoneRule::make()]);
+    expect($validator->passes())->toBeTrue();
+});
+
+test('rule fails validation for an invalid number', function () {
+    $validator = Validator::make(['phone' => '4000000'], ['phone' => NOPhoneRule::make()]);
+    expect($validator->fails())->toBeTrue();
+});
+
+test('rule locks the locale and exposes no code setter', function () {
+    expect(method_exists(NOPhoneRule::class, 'for'))->toBeFalse();
+    $validator = Validator::make(['phone' => '4000000'], ['phone' => NOPhoneRule::make('SA')]);
+    expect($validator->fails())->toBeTrue();
+});
+
+test('rule callback takes full control of the flow', function () {
+    $pass = Validator::make(['phone' => '4000000'], ['phone' => NOPhoneRule::make()->validateUsing(fn () => null)]);
+    expect($pass->passes())->toBeTrue();
+
+    $fail = Validator::make(['phone' => '40000000'], ['phone' => NOPhoneRule::make()->validateUsing(fn ($phone, $attribute, $value, $config, $fail) => $fail('nope'))]);
+    expect($fail->fails())->toBeTrue();
+});
+
+test('rule message can be overridden', function () {
+    $validator = Validator::make(['phone' => '4000000'], ['phone' => NOPhoneRule::make()->message('bad phone')]);
+    expect($validator->errors()->first('phone'))->toEqual('bad phone');
+});
+
+test('placeholder is locked to the country code', function () {
+    $placeholder = NOPlaceholder::make();
+    expect($placeholder)->toBeInstanceOf(NOPlaceholder::class)
+        ->and($placeholder->extract()->code)->toEqual('NO');
+});
+
+test('placeholder mirrors the generic placeholder for its code', function () {
+    expect(NOPlaceholder::make()->extract()->toArray())
+        ->toEqual(Placeholder::make('NO')->extract()->toArray());
+});
+
+test('placeholder mask flows through to the extracted data', function () {
+    expect(NOPlaceholder::make('#')->extract()->mask)->toEqual('#');
+});

@@ -1,5 +1,8 @@
+laravel: '@testbench'
+
 providers:
-  # - Workbench\App\Providers\WorkbenchServiceProvider
+  - MMAE\Phones\MMAEPhonesServiceProvider
+  - Workbench\App\Providers\WorkbenchServiceProvider
 
 migrations:
   - workbench/database/migrations
@@ -13,10 +16,19 @@ workbench:
   health: false
   discovers:
     web: true
-    api: false
-    commands: false
+    api: true
+    commands: true
     components: false
+    factories: true
     views: false
-  build: []
-  assets: []
-  sync: []
+  build:
+    - asset-publish
+    - create-sqlite-db
+    - db-wipe
+    - migrate-fresh
+  assets:
+    - laravel-assets
+  sync:
+    - from: storage
+      to: workbench/storage
+      reverse: true

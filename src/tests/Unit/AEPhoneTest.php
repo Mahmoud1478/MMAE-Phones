@@ -1,101 +1,147 @@
 <?php
 
-namespace MMAE\Phones\Tests\Unit;
-
+use Illuminate\Support\Facades\Validator;
 use MMAE\Phones\Base\BasePhone;
-use MMAE\Phones\AEPhone;
-use MMAE\Phones\tests\TestCase;
-use PHPUnit\Framework\Attributes\Test;
+use MMAE\Phones\Phones\AEPhone;
+use MMAE\Phones\Placeholders\AEPlaceholder;
+use MMAE\Phones\Placeholders\Placeholder;
+use MMAE\Phones\Rules\AEPhoneRule;
 
-class AEPhoneTest extends TestCase
-{
+test('can create a phone object', function () {
+    expect(AEPhone::make('0500000000'))->toBeInstanceOf(AEPhone::class);
+});
 
-    #[Test]
-    public function can_create_a_phone_object()
-    {
-        $phone = AEPhone::make('0550000000');
-        $this->assertInstanceOf(AEPhone::class, $phone);
-    }
+test('validates every provider variant in international form', function (string $number) {
+    expect(AEPhone::make($number)->isValid())->toBeTrue();
+})->with(['971500000000', '971520000000', '971540000000', '971550000000', '971560000000', '971580000000']);
 
-    #[Test]
-    public function determine_if_the_phone_number_is_valid_with_country_key_without_plus()
-    {
-        $phone = AEPhone::make('971550000000');
-        $this->assertTrue($phone->isValid());
-    }
+test('is valid with the local key', function () {
+    expect(AEPhone::make('0500000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_valid_with_local_key()
-    {
-        $phone = AEPhone::make('0550000000');
-        $this->assertTrue($phone->isValid());
-    }
+test('is valid with the country key and no plus', function () {
+    expect(AEPhone::make('971500000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_valid_with_country_key()
-    {
-        $phone = AEPhone::make('0550000000');
-        $this->assertTrue($phone->isValid());
-    }
+test('is valid with the country key and a plus', function () {
+    expect(AEPhone::make('+971500000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_valid_with_country_key_with_plus()
-    {
-        $phone = AEPhone::make('+971550000000');
-        $this->assertTrue($phone->isValid());
-    }
+test('is valid with the country key and double zeros', function () {
+    expect(AEPhone::make('00971500000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_valid_with_country_key_with_double_zeros()
-    {
-        $phone = AEPhone::make('00971550000000');
-        $this->assertTrue($phone->isValid());
-    }
+test('is valid at the minimum digit length', function () {
+    expect(AEPhone::make('971500000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_not_valid_because_of_the_length()
-    {
-        $phone = AEPhone::make('97155000000');
-        $this->assertTrue($phone->isNotValid());
-    }
+test('is valid at the maximum digit length', function () {
+    expect(AEPhone::make('971580000000')->isValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_not_valid_because_of_the_key()
-    {
-        $phone = AEPhone::make('977550000000');
-        $this->assertTrue($phone->isNotValid());
-    }
+test('strips spaces and dashes before validating', function () {
+    $phone = AEPhone::make('971 5-00000000');
+    expect($phone->isValid())->toBeTrue()
+        ->and($phone->toString())->toEqual('971500000000');
+});
 
+test('is not valid when too short', function () {
+    expect(AEPhone::make('50000000')->isNotValid())->toBeTrue();
+});
 
-    #[Test]
-    public function determine_if_the_phone_number_is_not_valid_because_of_the_starter_number()
-    {
-        $phone = AEPhone::make('971450000000');
-        $this->assertTrue($phone->isNotValid());
-    }
+test('is not valid when too long', function () {
+    expect(AEPhone::make('5800000000')->isNotValid())->toBeTrue();
+});
 
-    #[Test]
-    public function can_make_all_possible_number_shapes()
-    {
-        $phone = AEPhone::make('0550000000');
-        $phone_shapes = [
-            '971550000000',
-            '+971550000000',
-            '00971550000000',
-            '0550000000'
-        ];
-        $this->assertArrayIsIdenticalToArrayOnlyConsideringListOfKeys($phone_shapes, $phone->all(),[]);
+test('is not valid with a wrong country key', function () {
+    expect(AEPhone::make('999500000000')->isNotValid())->toBeTrue();
+});
 
-    }
+test('is not valid because of the starter number', function () {
+    expect(AEPhone::make('0000000000')->isNotValid())->toBeTrue();
+});
 
-    #[Test]
-    public function global_static_variables_effect_children()
-    {
-        BasePhone::$plus = true;
-        $phone = AEPhone::make('0550000000');
-        $this->assertEquals('+971550000000', $phone->toString());
-    }
+test('is not valid for empty or non-numeric input', function (string $number) {
+    expect(AEPhone::make($number)->isNotValid())->toBeTrue();
+})->with(['', 'abcdefghij']);
 
+test('lists every accepted key-prefixed shape', function () {
+    expect(AEPhone::make('0500000000')->all())->toEqual(['+971500000000', '00971500000000', '971500000000', '0500000000']);
+});
 
+test('toArray mirrors all', function () {
+    $phone = AEPhone::make('0500000000');
+    expect($phone->toArray())->toEqual($phone->all());
+});
 
-}
+test('segments expose the provider and digits groups', function () {
+    $segments = AEPhone::make('971500000000')->segments();
+    expect($segments)->toHaveKeys(['provider', 'digits'])
+        ->and($segments['provider'].$segments['digits'])->toEqual('500000000');
+});
+
+test('config exposes the country schema', function () {
+    $phone = AEPhone::make('0500000000');
+    expect($phone->config('key'))->toEqual('971')
+        ->and($phone->config('code'))->toEqual('AE')
+        ->and($phone->config())->toBeArray();
+});
+
+test('number returns the raw input untouched', function () {
+    expect(AEPhone::make('971 5-00000000')->number())->toEqual('971 5-00000000');
+});
+
+test('withPlus and withoutPlus toggle the plus prefix', function () {
+    $phone = AEPhone::make('0500000000');
+    expect($phone->withPlus()->toString())->toEqual('+971500000000')
+        ->and($phone->withoutPlus()->toString())->toEqual('971500000000');
+})->after(fn () => BasePhone::$plus = false);
+
+test('the static plus flag affects the string form', function () {
+    BasePhone::$plus = true;
+    expect(AEPhone::make('0500000000')->toString())->toEqual('+971500000000');
+})->after(fn () => BasePhone::$plus = false);
+
+test('rule passes validation for a valid number', function () {
+    $validator = Validator::make(['phone' => '0500000000'], ['phone' => AEPhoneRule::make()]);
+    expect($validator->passes())->toBeTrue();
+});
+
+test('rule fails validation for an invalid number', function () {
+    $validator = Validator::make(['phone' => '50000000'], ['phone' => AEPhoneRule::make()]);
+    expect($validator->fails())->toBeTrue();
+});
+
+test('rule locks the locale and exposes no code setter', function () {
+    expect(method_exists(AEPhoneRule::class, 'for'))->toBeFalse();
+    $validator = Validator::make(['phone' => '50000000'], ['phone' => AEPhoneRule::make('SA')]);
+    expect($validator->fails())->toBeTrue();
+});
+
+test('rule callback takes full control of the flow', function () {
+    $pass = Validator::make(['phone' => '50000000'], ['phone' => AEPhoneRule::make()->validateUsing(fn () => null)]);
+    expect($pass->passes())->toBeTrue();
+
+    $fail = Validator::make(['phone' => '0500000000'], ['phone' => AEPhoneRule::make()->validateUsing(fn ($phone, $attribute, $value, $config, $fail) => $fail('nope'))]);
+    expect($fail->fails())->toBeTrue();
+});
+
+test('rule message can be overridden', function () {
+    $validator = Validator::make(['phone' => '50000000'], ['phone' => AEPhoneRule::make()->message('bad phone')]);
+    expect($validator->errors()->first('phone'))->toEqual('bad phone');
+});
+
+test('placeholder is locked to the country code', function () {
+    $placeholder = AEPlaceholder::make();
+    expect($placeholder)->toBeInstanceOf(AEPlaceholder::class)
+        ->and($placeholder->extract()->code)->toEqual('AE');
+});
+
+test('placeholder mirrors the generic placeholder for its code', function () {
+    expect(AEPlaceholder::make()->extract()->toArray())
+        ->toEqual(Placeholder::make('AE')->extract()->toArray());
+});
+
+test('placeholder mask flows through to the extracted data', function () {
+    expect(AEPlaceholder::make('#')->extract()->mask)->toEqual('#');
+});
