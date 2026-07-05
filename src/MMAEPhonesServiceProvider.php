@@ -22,7 +22,7 @@ class MMAEPhonesServiceProvider extends ServiceProvider
     public const string NAME = 'mmae/phones';
 
     /** Current package version (kept in step with the git release tag). */
-    public const string VERSION = '2.0.0';
+    public const string VERSION = '2.1.0';
 
     /** Package repository URL. */
     public const string HOMEPAGE = 'https://github.com/Mahmoud1478/MMAE-Phones';

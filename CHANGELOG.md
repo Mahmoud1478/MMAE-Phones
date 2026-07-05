@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-05
+
+### Added
+
+- **`BasePhone::format()`** — render a parsed number with braced tokens
+  (`{key}` dialing code, `{local}` national trunk prefix, `{provider}`,
+  `{digits}`). Any other text passes through literally, so labels and
+  separators need no escaping (e.g. `format('+{key} {provider}-{digits}')` →
+  `+20 10-12345678`). Returns `''` for an invalid number, like `toString()`.
+  A single `strtr()` pass — no regex, no per-char loop.
+  - PhpStorm autocomplete for the tokens: `.phpstorm.meta.php` registers the
+    four braced tokens and common patterns for `BasePhone::format()`, so typing
+    `$phone->format('')` pops the vocabulary in the editor.
+
 ## [2.0.0] - 2026-07-05
 
 ### Added

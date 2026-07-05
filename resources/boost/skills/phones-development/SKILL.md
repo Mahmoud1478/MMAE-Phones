@@ -71,6 +71,7 @@ CountryDetector::detect('01000000000');      // [] — local form has no country
 - **A phone's country is fixed at construction** — pass the code to `make()`; there is no setter to swap it afterward.
 - **Config & translations merge automatically** — no publish to start. Publish only to customize; **regenerate `config/phone-lookup.php` with `php artisan phones:build-lookup` after any `config/phones.php` change**, or detection silently misses new countries.
 - **`toString()` returns `''` for an invalid number** — always check `isValid()`/`isNotValid()` (or validate with the rule) before persisting.
+- **`format()` is display-only** — braced tokens `{key}`/`{local}`/`{provider}`/`{digits}`, other text literal (no escaping), `''` when invalid. Persist the canonical `toString()` form; format only for output.
 
 ## Reference
 

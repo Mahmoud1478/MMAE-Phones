@@ -5,7 +5,9 @@
  *
  * Registers the 209 supported country codes as autocomplete suggestions for the
  * $countryCode arguments of the generic entry points, so typing e.g.
- * Phone::make($n, '') pops the full country list in the editor.
+ * Phone::make($n, '') pops the full country list in the editor. Also suggests
+ * the braced format() tokens ({key}/{local}/{provider}/{digits}) and a few
+ * common patterns for BasePhone::format().
  *
  * Regenerate after adding a country: the list mirrors config/phones.php keys.
  */
@@ -228,4 +230,20 @@ namespace PHPSTORM_META {
     expectedArguments(\MMAE\Phones\Phone::make(), 1, argumentsSet('mmae_phones_country_codes'));
     expectedArguments(\MMAE\Phones\Rules\PhoneRule::make(), 0, argumentsSet('mmae_phones_country_codes'));
     expectedArguments(\MMAE\Phones\Placeholders\Placeholder::make(), 0, argumentsSet('mmae_phones_country_codes'));
+
+    registerArgumentsSet(
+        'mmae_phones_format_tokens',
+        '{key}',
+        '{local}',
+        '{provider}',
+        '{digits}',
+        '{key} {provider} {digits}',
+        '+{key} {provider}-{digits}',
+        '+({key}) {provider}-{digits}',
+        '{local}{provider}{digits}',
+        '{key}{provider}{digits}',
+        '+{key}{provider}{digits}',
+    );
+
+    expectedArguments(\MMAE\Phones\Base\BasePhone::format(), 0, argumentsSet('mmae_phones_format_tokens'));
 }

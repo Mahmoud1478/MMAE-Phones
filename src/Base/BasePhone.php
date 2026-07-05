@@ -147,6 +147,30 @@ abstract class BasePhone implements \Stringable, Arrayable
     }
 
     /**
+     * Format the parsed number with braced tokens. Recognized placeholders:
+     * `{key}` country dialing key, `{local}` local trunk key, `{provider}`
+     * provider, `{digits}` subscriber digits. Any other text is emitted
+     * literally. Returns `''` when the number is invalid.
+     *
+     * Example: `EGPhone::make('01012345678')->format('+{key} {provider}-{digits}')`
+     * → `+20 10-12345678`.
+     */
+    public function format(string $format): string
+    {
+        if ($this->isNotValid()) {
+            return '';
+        }
+        $segments = $this->segments();
+
+        return strtr($format, [
+            '{key}' => $this->country['key'] ?? '',
+            '{local}' => $this->country['local_key'] ?? '',
+            '{provider}' => $segments['provider'] ?? '',
+            '{digits}' => $segments['digits'] ?? '',
+        ]);
+    }
+
+    /**
      * The number under every accepted prefix form, or `[]` when invalid.
      *
      * @return list<string>

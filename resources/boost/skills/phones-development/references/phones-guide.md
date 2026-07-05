@@ -58,6 +58,7 @@ $phone = Phone::make('01012345678', 'EG');
 | `toString()` / `(string) $phone` | `string` | normalized `key+provider+digits`; **`''` if invalid** |
 | `all()` | `array` | every accepted key-prefixed variant (`0`, `00`, `+`, bare) |
 | `segments()` | `array` | named capture groups (`key`, `provider`, `digits`) |
+| `format(string $format)` | `string` | render the parts with braced tokens; **`''` if invalid** |
 | `withPlus()` | `static` | make output use a `+` prefix |
 | `withoutPlus()` | `static` | switch back to no `+` prefix (default) |
 | `number()` | `string` | the original, unmodified input |
@@ -98,6 +99,15 @@ EGPhone::make('01012345678')->segments();
 
 EGPhone::make('01012345678')->all();
 // every accepted shape: ['01012345678', '0020101...', '+2010...', '2010...']
+```
+
+Custom output — braced tokens (`{key}`, `{local}`, `{provider}`, `{digits}`); any other text is literal, no escaping. `''` when invalid:
+
+```php
+$p = EGPhone::make('01012345678');
+$p->format('+{key} {provider}-{digits}');  // +20 10-12345678
+$p->format('{local}{provider}{digits}');   // 01012345678  (national form)
+$p->format('tel: {key}{provider}{digits}');// tel: 201012345678  (label kept)
 ```
 
 ---

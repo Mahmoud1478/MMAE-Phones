@@ -10,3 +10,4 @@
 - Namespaces: phones `MMAE\Phones\Phones\`, rules `MMAE\Phones\Rules\`, placeholders `MMAE\Phones\Placeholders\`; the generics are `MMAE\Phones\Phone`, `MMAE\Phones\Rules\PhoneRule`, `MMAE\Phones\Placeholders\Placeholder`, and `MMAE\Phones\CountryDetector`.
 - Zero-config: config, the detector index, and translations all load automatically — validation, normalization, and detection work the moment the package is installed. Nothing to publish to start.
 - Always normalize before persisting and validate first: `toString()` returns `''` for an invalid number, so gate on `isValid()`/`isNotValid()` (or the rule). Store one canonical form (`->withPlus()->toString()`) and assert **that** form in tests, not the raw input.
+- Store the canonical form; for **display only**, use `format()` with braced tokens (`{key}`, `{local}`, `{provider}`, `{digits}`) — e.g. `format('+{key} {provider}-{digits}')`. Any other text is literal (no escaping), and it returns `''` when invalid.

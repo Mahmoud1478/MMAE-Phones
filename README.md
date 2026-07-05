@@ -421,6 +421,7 @@ All phone classes extend `MMAE\Phones\Base\BasePhone`, which implements `Stringa
 | `toString()` / `(string) $phone` | `string` | normalized `key+provider+digits`, `''` if invalid |
 | `all()` | `array` | every accepted key-prefixed variant (`0`, `00`, `+`, bare) |
 | `segments()` | `array` | named regex capture groups (`key`, `provider`, `digits`) |
+| `format(string $format)` | `string` | render the parsed parts with braced tokens, `''` if invalid |
 | `withPlus()` | `static` | switch `toString()`/`all()` output to use `+` prefix (static flag) |
 | `withoutPlus()` | `static` | switch back to no `+` prefix (default) |
 | `number()` | `string` | the original, unmodified input |
@@ -428,6 +429,21 @@ All phone classes extend `MMAE\Phones\Base\BasePhone`, which implements `Stringa
 | `config(?string $key = null)` | `mixed` | read the country's config array, or one key from it |
 
 `withPlus()` / `withoutPlus()` mutate a **static** flag shared by the class, not per-instance state — set it right before casting to string.
+
+### Custom formatting
+
+`format()` renders the parsed parts with braced tokens — `{key}` (dialing code), `{local}` (national trunk prefix), `{provider}`, `{digits}`. Any other text is emitted literally, so labels and separators pass through untouched; there is no escaping to worry about. Returns `''` for an invalid number.
+
+```php
+$phone = EGPhone::make('01012345678');
+
+$phone->format('+{key} {provider}-{digits}');   // +20 10-12345678
+$phone->format('{local}{provider}{digits}');    // 01012345678  (national form)
+$phone->format('({key}) {provider} {digits}');  // (20) 10 12345678
+$phone->format('tel: {key}{provider}{digits}'); // tel: 201012345678  (literal text kept)
+
+EGPhone::make('01099')->format('{key} {provider}'); // '' (invalid)
+```
 
 ## 6. Country detection (bulk imports)
 
@@ -855,6 +871,8 @@ A number on a shared key (`+17875550123` → `US, CA, PR`) lists all matches —
 > **PhpStorm only.** This feature relies on `.phpstorm.meta.php`, which only PhpStorm reads. Other editors (VS Code/Intelephense, Neovim, …) have no mechanism for suggesting string-literal argument values, so they get nothing here — but every code still validates fine at runtime.
 
 The package ships a `.phpstorm.meta.php` registering all built-in codes as suggestions for the `$countryCode` argument of `Phone::make()`, `PhoneRule::make()`, and `Placeholder::make()` — typing `Phone::make($n, '')` pops the country list in PhpStorm.
+
+It also suggests the braced `format()` tokens (`{key}`, `{local}`, `{provider}`, `{digits}`) plus a few common patterns for `BasePhone::format()`, so typing `$phone->format('')` pops the token vocabulary.
 
 That shipped file is frozen at the built-in list. **After you publish and extend `config/phones.php`**, regenerate the metadata from your live config:
 
